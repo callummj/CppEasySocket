@@ -1,0 +1,40 @@
+%class Client
+%header Client.h
+%import "pch.h"
+%start ClientMap::Disconnected
+
+%map ClientMap
+%%
+
+Disconnected
+{
+	Connect						Connecting				{ ConnectToServerAsync(); }
+	Dispose						Disposed				{ CleanupSocket(); }
+}
+
+
+Connecting
+{
+	ConnectionSuccessful		Connected				{ NotifyConnected(); }
+	ConnectionUnsuccessful		Disconnected			{ NotifyFailureToConnect(); }
+}
+
+Connected
+{
+	Disconnect					Disconnecting			{ DisconnectFromServerAsync(); }
+}
+
+
+Disconnecting
+{
+	DisconnectionSuccessful		Disconnected			{ NotifyDisconnected(); }
+	DisconnectionUnsuccessful	Disconnected			{ NotifyFailureToDisconnect(); }
+}
+
+
+Disposed
+{
+	
+}
+
+%%
