@@ -36,6 +36,7 @@ private:
 
 	void OnConnectionSuccessful();
 	void OnConnectionUnSuccessful();
+	void OnThreadComplete();
 
 	ClientContext* m_smContext;
 	friend class ClientState;

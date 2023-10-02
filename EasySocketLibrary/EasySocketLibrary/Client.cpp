@@ -64,18 +64,69 @@ void Client::CleanupSocket()
 
 void Client::ConnectToServerAsync()
 {
-	m_thread = new std::thread([this](){
-		PADDRINFOA* result = new PADDRINFOA();
-		auto iResult = getaddrinfo(m_ipAddress.GetIp(), m_ipAddress.GetPort(), m_hints, result);
-		delete result;
+	if (m_thread != nullptr) {
+		return;
+	}
 
-		if (iResult != 0)
-		{
+	m_thread = new std::thread([this](){
+
+		WSADATA wsaData;
+		SOCKET connectSocket = INVALID_SOCKET;
+		struct addrinfo* result = NULL, * ptr = NULL, hints;
+		int iResult;
+
+		// Initialize Winsock
+		iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+		if (iResult != 0) {
+			m_socket = &connectSocket;
+			OnThreadComplete();
 			OnConnectionUnSuccessful();
+			return;
 		}
-		else {
-			OnConnectionSuccessful();
+
+		ZeroMemory(&hints, sizeof(hints));
+		hints.ai_family = AF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_protocol = IPPROTO_TCP;
+
+		// Resolve the server address and port
+		//iResult = getaddrinfo(m_ipAddress.GetIp(), m_ipAddress.GetPort(), &hints, &result);
+		iResult = getaddrinfo(m_ipAddress.GetIp().c_str(), m_ipAddress.GetPort().c_str(), &hints, &result);
+		if (iResult != 0) {
+			m_socket = &connectSocket;
+			OnThreadComplete();
+			OnConnectionUnSuccessful();
+			return;
 		}
+
+		// Create a socket object
+		connectSocket = socket(result->ai_family, result->ai_socktype,
+			result->ai_protocol);
+
+
+		// Failed to create a socket
+		if (connectSocket == INVALID_SOCKET) {
+			m_socket = &connectSocket;
+			OnThreadComplete();
+			OnConnectionUnSuccessful();
+			return;
+		}
+
+		// Connect to the socket
+		iResult = connect(connectSocket, result->ai_addr, (int)result->ai_addrlen);
+		if (iResult == SOCKET_ERROR) {
+			m_socket = &connectSocket;
+			auto errorCode = WSAGetLastError();
+			closesocket(connectSocket);
+			OnConnectionUnSuccessful();
+			OnThreadComplete();
+			return;
+		}
+		
+		// Success
+		m_socket = &connectSocket;
+		OnThreadComplete();
+		OnConnectionSuccessful();
 	});
 	
 	m_thread->detach();
@@ -93,4 +144,9 @@ void Client::OnConnectionSuccessful()
 	m_lock->lock();
 	m_smContext->ConnectionSuccessful();
 	m_lock->unlock();
+}
+
+void Client::OnThreadComplete() {
+	delete(m_thread);
+	m_thread = nullptr;
 }

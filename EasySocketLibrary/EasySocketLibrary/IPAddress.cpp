@@ -2,24 +2,29 @@
 #include "IPAddress.h"
 #include <WS2tcpip.h>
 #include <stdexcept>
+#include <atlstr.h>
+
+IPAddress::IPAddress(std::string ipAddress, int port)
+{
+    m_ipAddress = ipAddress;
+    m_port = port;
+    
+}
+
+std::string IPAddress::GetIp()
+{
+    return m_ipAddress;
+}
+
+std::string IPAddress::GetPort()
+{
+    return std::to_string(m_port);
+}
 
 IPAddress::IPAddress()
 {
     m_ipAddress = "";
     m_port = 0;
-    
-}
-
-PCSTR IPAddress::GetIp()
-{
-    PCSTR ipAddress = m_ipAddress.c_str();
-    return ipAddress;
-}
-
-PCSTR IPAddress::GetPort()
-{
-    auto portAsString = std::to_string(m_port);
-    return portAsString.c_str();
 }
 
 IPAddress IPAddress::Parse(std::string ipAddress, int port)
@@ -39,5 +44,6 @@ IPAddress IPAddress::Parse(std::string ipAddress, int port)
         throw std::invalid_argument("Invalid IP Address provided");
     }
 
-    return IPAddress();
+
+    return IPAddress(ipAddress, port);
 }
